@@ -4,6 +4,7 @@ export function formatPlan(plan: PlanResult): string {
   const lines = [
     "[plan]",
     `task=${plan.task}`,
+    `requestedDomains=${plan.requestedDomains.join(", ") || "-"}`,
     `keywords=${plan.keywords.join(", ") || "-"}`,
     `domains=${plan.detectedDomains.join(", ") || "-"}`,
     `budget.maxFiles=${plan.budget.maxFiles}`,
@@ -64,6 +65,9 @@ export function formatPackCodex(plan: PlanResult, pack: PackResult): string {
     "",
     "## Task",
     plan.task,
+    "",
+    "## Requested Domains",
+    ...(plan.requestedDomains.length === 0 ? ["-"] : plan.requestedDomains.map((domain) => `- ${domain}`)),
     "",
     "## Domains",
     ...(plan.detectedDomains.length === 0 ? ["-"] : plan.detectedDomains.map((domain) => `- ${domain}`)),

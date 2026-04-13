@@ -36,10 +36,13 @@ export function planTask(
   task: string,
   index: FileIndexEntry[],
   config: ColConfig,
-  rules: AgentRuleSet
+  rules: AgentRuleSet,
+  options?: {
+    forcedDomains?: string[];
+  }
 ): PlanResult {
   const keywords = extractKeywords(task);
-  const detectedDomains = detectDomains(keywords, config.domainMappings);
+  const detectedDomains = resolveDomains(keywords, config.domainMappings, options?.forcedDomains ?? []);
   const budget = deriveBudget(config, rules);
   const candidates = scoreCandidatesWithConfig(
     index,
@@ -53,6 +56,7 @@ export function planTask(
   return {
     task,
     keywords,
+    requestedDomains: options?.forcedDomains ?? [],
     detectedDomains: detectedDomains.map((domain) => domain.name),
     rules,
     candidates,
@@ -119,6 +123,20 @@ function detectDomains(keywords: string[], domainMappings: DomainMapping[]): Dom
   return domainMappings.filter((mapping) => {
     return keywords.some((keyword) => mapping.aliases.includes(keyword) || keyword === mapping.name);
   });
+}
+
+function resolveDomains(
+  keywords: string[],
+  domainMappings: DomainMapping[],
+  forcedDomains: string[]
+): DomainMapping[] {
+  if (forcedDomains.length === 0) {
+    return detectDomains(keywords, domainMappings);
+  }
+
+  const forced = new Set(forcedDomains.map((domain) => domain.toLowerCase()));
+
+  return domainMappings.filter((mapping) => forced.has(mapping.name.toLowerCase()));
 }
 
 

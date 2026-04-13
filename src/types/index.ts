@@ -47,6 +47,7 @@ export interface FileIndexEntry {
 export interface PlanResult {
   task: string;
   keywords: string[];
+  requestedDomains: string[];
   detectedDomains: string[];
   candidates: FileIndexEntry[];
   rules: AgentRuleSet;

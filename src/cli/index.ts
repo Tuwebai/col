@@ -102,7 +102,9 @@ Ejemplos:
   col init
   col index
   col plan "agregar refresh token en auth"
+  col plan --domain auth "agregar refresh token"
   col plan --json "agregar refresh token en auth"
+  col pack --domain auth --json "agregar refresh token"
   col pack --json "agregar refresh token en auth"
   col pack --codex "agregar refresh token en auth"
   col stats
@@ -142,12 +144,14 @@ program
   .command("plan")
   .description("Planifica contexto minimo")
   .argument("<task>", "Tarea a resolver")
+  .option("--domain <domain>", "Fuerza un dominio")
   .option("--json", "Salida en JSON")
-  .action(async (task: string, options: { json?: boolean }) => {
+  .action(async (task: string, options: { domain?: string; json?: boolean }) => {
     const config = await loadConfig(cwd);
     const rules = await loadAgentsRules(cwd);
     const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
-    const plan = planTask(task, index, config, rules);
+    const forcedDomains = resolveDomainOption(options.domain, config);
+    const plan = planTask(task, index, config, rules, { forcedDomains });
     writeOutput(formatPlan(plan), plan, options);
   });
 
@@ -155,14 +159,17 @@ program
   .command("pack")
   .description("Empaqueta contexto util")
   .argument("<task>", "Tarea a resolver")
+  .option("--domain <domain>", "Fuerza un dominio")
   .option("--json", "Salida en JSON")
   .option("--codex", "Salida lista para Codex")
-  .action(async (task: string, options: { json?: boolean; codex?: boolean }) => {
+  .action(async (task: string, options: { domain?: string; json?: boolean; codex?: boolean }) => {
     const config = await loadConfig(cwd);
     const rules = await loadAgentsRules(cwd);
     const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
-    const plan = planTask(task, index, config, rules);
-    const cached = await readPackCache(cwd, task);
+    const forcedDomains = resolveDomainOption(options.domain, config);
+    const plan = planTask(task, index, config, rules, { forcedDomains });
+    const cacheKey = buildPackCacheKey(task, forcedDomains);
+    const cached = await readPackCache(cwd, cacheKey);
 
     if (cached) {
       writePackOutput(plan, { ...cached, cacheHit: true }, options);
@@ -170,7 +177,7 @@ program
     }
 
     const pack = await packContext(cwd, plan, config);
-    await writePackCache(cwd, task, pack);
+    await writePackCache(cwd, cacheKey, pack);
     writePackOutput(plan, { ...pack, cacheHit: false }, options);
   });
 
@@ -395,4 +402,32 @@ async function readStdin(): Promise<string> {
   }
 
   return Buffer.concat(chunks).toString("utf8");
+}
+
+function resolveDomainOption(domain: string | undefined, config: ColConfig): string[] {
+  if (!domain) {
+    return [];
+  }
+
+  const forcedDomains = domain
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  const available = new Set(config.domainMappings.map((mapping) => mapping.name.toLowerCase()));
+  const invalid = forcedDomains.filter((item) => !available.has(item));
+
+  if (invalid.length > 0) {
+    throw new Error(`domain invalido: ${invalid.join(", ")}`);
+  }
+
+  return forcedDomains;
+}
+
+function buildPackCacheKey(task: string, forcedDomains: string[]): string {
+  if (forcedDomains.length === 0) {
+    return task;
+  }
+
+  return `${forcedDomains.slice().sort().join(",")}::${task}`;
 }
