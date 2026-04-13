@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 import { Command } from "commander";
 
+import type { ColConfig, PackResult, PlanResult } from "../types/index.js";
 import {
   clearCache,
   readIndexCache,
@@ -369,8 +370,8 @@ function writeOutput(text: string, data: unknown, options: { json?: boolean }): 
 }
 
 function writePackOutput(
-  plan: import("../types/index.js").PlanResult,
-  pack: import("../types/index.js").PackResult,
+  plan: PlanResult,
+  pack: PackResult,
   options: { json?: boolean; codex?: boolean }
 ): void {
   if (options.json) {
