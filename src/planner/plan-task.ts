@@ -144,13 +144,18 @@ function deriveBudget(
   config: ColConfig,
   rules: AgentRuleSet
 ): PlanResult["budget"] {
+  const hasCriticalRules = rules.critical.length > 0;
   const normalizedRules = rules.rules.map((rule) => rule.toLowerCase());
   const strictExploration = normalizedRules.some((rule) => {
     return rule.includes("no explorar") || rule.includes("cambio minimo");
   });
 
   return {
-    maxFiles: strictExploration ? Math.min(config.maxFiles, 3) : config.maxFiles,
+    maxFiles: hasCriticalRules
+      ? Math.min(config.maxFiles, 2)
+      : strictExploration
+        ? Math.min(config.maxFiles, 3)
+        : config.maxFiles,
     maxLinesPerFile: config.maxLinesPerFile,
     maxTotalLines: config.maxTotalLines,
     matchWindow: config.matchWindow

@@ -12,6 +12,8 @@ export function formatPlan(plan: PlanResult): string {
     `budget.maxTotalLines=${plan.budget.maxTotalLines}`,
     `budget.matchWindow=${plan.budget.matchWindow}`,
     `rules.source=${plan.rules.source ?? "-"}`,
+    `rules.critical=${plan.rules.critical.length}`,
+    `rules.standard=${plan.rules.standard.length}`,
     "",
     "[rules]"
   ];

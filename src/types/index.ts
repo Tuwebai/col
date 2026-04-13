@@ -34,6 +34,8 @@ export interface ColConfig {
 export interface AgentRuleSet {
   source: string | null;
   rules: string[];
+  critical: string[];
+  standard: string[];
 }
 
 export interface FileIndexEntry {
