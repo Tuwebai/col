@@ -71,67 +71,49 @@ export function formatPack(pack: PackResult): string {
 }
 
 export function formatPackCodex(plan: PlanResult, pack: PackResult): string {
+  return formatCodex(plan, pack);
+}
+
+export function formatCodex(plan: PlanResult, pack: PackResult): string {
   const lines = [
-    "# COL Codex Packet",
-    "",
-    "## Task",
+    "## TAREA",
     plan.task,
     "",
-    "## Requested Domains",
-    ...(plan.requestedDomains.length === 0 ? ["-"] : plan.requestedDomains.map((domain) => `- ${domain}`)),
-    "",
-    "## Domains",
-    ...(plan.detectedDomains.length === 0 ? ["-"] : plan.detectedDomains.map((domain) => `- ${domain}`)),
-    "",
-    "## Rules"
+    "## REGLAS DEL AGENTE"
   ];
 
   if (plan.rules.rules.length === 0) {
-    lines.push("-");
+    lines.push("ninguna");
   }
 
   for (const rule of plan.rules.rules) {
-    lines.push(`- ${rule}`);
+    lines.push(rule);
   }
 
   lines.push("");
-  lines.push("## Budget");
+  lines.push("## BUDGET");
   lines.push(`- maxFiles: ${plan.budget.maxFiles}`);
   lines.push(`- maxLinesPerFile: ${plan.budget.maxLinesPerFile}`);
-  lines.push(`- maxTotalLines: ${plan.budget.maxTotalLines}`);
   lines.push(`- matchWindow: ${plan.budget.matchWindow}`);
+  lines.push(`- savedPercent: ${pack.savedPercent}%`);
   lines.push("");
-  lines.push("## Candidates");
-
-  if (plan.candidates.length === 0) {
-    lines.push("-");
-  }
-
-  for (const candidate of plan.candidates) {
-    lines.push(`- ${candidate.path} (score=${candidate.score})`);
-  }
-
-  lines.push("");
-  lines.push("## Context");
-  lines.push(`- totalFiles: ${pack.totalFiles}`);
-  lines.push(`- sourceLines: ${pack.sourceLines}`);
-  lines.push(`- totalLines: ${pack.totalLines}`);
-  lines.push(`- savedLines: ${pack.savedLines}`);
-  lines.push(`- savedPercent: ${pack.savedPercent}`);
-  lines.push(`- estimatedTokens: ${pack.estimatedTokens ?? 0}`);
-  lines.push(`- cacheHit: ${pack.cacheHit ? "true" : "false"}`);
+  lines.push("## CONTEXTO");
 
   for (const fragment of pack.fragments) {
     lines.push("");
-    lines.push(`### File: ${fragment.path}`);
-    lines.push(`- score: ${fragment.score}`);
-    lines.push(`- budget: ${fragment.budget}`);
-    lines.push(`- lines: ${fragment.lines}`);
-    lines.push("");
+    lines.push(`### ${fragment.path}`);
     lines.push(`\`\`\`${detectFenceLanguage(fragment.path)}`);
     lines.push(fragment.excerpt);
     lines.push("```");
   }
+
+  lines.push("");
+  lines.push("## MÉTRICAS");
+  lines.push(`- totalFiles: ${pack.totalFiles}`);
+  lines.push(`- sourceLines: ${pack.sourceLines}`);
+  lines.push(`- totalLines: ${pack.totalLines}`);
+  lines.push(`- savedLines: ${pack.savedLines}`);
+  lines.push(`- cacheHit: ${pack.cacheHit ? "true" : "false"}`);
 
   return lines.join("\n");
 }

@@ -19,7 +19,7 @@ import { loadConfig } from "../config/load-config.js";
 import { estimateTokens } from "../governor/estimate-tokens.js";
 import { formatGovern } from "../governor/format-govern.js";
 import { governToolOutput } from "../governor/govern-tool-output.js";
-import { formatPack, formatPackCodex, formatPlan } from "../governor/format-output.js";
+import { formatCodex, formatPack, formatPackCodex, formatPlan } from "../governor/format-output.js";
 import { formatStats } from "../governor/format-stats.js";
 import { buildIndex } from "../indexer/build-index.js";
 import { planTask } from "../planner/plan-task.js";
@@ -109,6 +109,8 @@ Ejemplos:
   col pack --domain auth --json "agregar refresh token"
   col pack --json "agregar refresh token en auth"
   col pack --codex "agregar refresh token en auth"
+  col export "agregar refresh token en auth"
+  col export --clipboard "agregar refresh token en auth"
   col stats
   col doctor
   col status
@@ -171,27 +173,29 @@ program
   .option("--json", "Salida en JSON")
   .option("--codex", "Salida lista para Codex")
   .action(async (task: string, options: { domain?: string; json?: boolean; codex?: boolean }) => {
-    const config = await loadConfig(cwd);
-    const rules = await loadAgentsRules(cwd);
-    const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
-    const forcedDomains = resolveDomainOption(options.domain, config);
-    const plan = planTask(task, index, config, rules, { forcedDomains });
-    const cacheKey = buildPackCacheKey(task, forcedDomains);
-    const cached = await readPackCache(cwd, cacheKey, config);
+    const { plan, pack } = await resolvePackPipeline(task, options.domain);
+    writePackOutput(plan, pack, options);
+  });
 
-    if (cached) {
-      const estimatedTokens = cached.estimatedTokens ?? estimateTokens(cached);
-      writePackOutput(plan, { ...cached, estimatedTokens, cacheHit: true }, options);
+program
+  .command("export")
+  .description("Exporta contexto en formato Codex")
+  .argument("<task>", "Tarea a resolver")
+  .option("--domain <domain>", "Fuerza un dominio")
+  .option("--clipboard", "Imprime a stdout para piping")
+  .action(async (task: string, options: { domain?: string; clipboard?: boolean }) => {
+    const { plan, pack } = await resolvePackPipeline(task, options.domain);
+    const output = formatCodex(plan, pack);
+
+    if (options.clipboard) {
+      process.stdout.write(`${output}\n`);
       return;
     }
 
-    const pack = await packContext(cwd, plan, config);
-    const hydratedPack = {
-      ...pack,
-      estimatedTokens: estimateTokens(pack)
-    };
-    await writePackCache(cwd, cacheKey, hydratedPack);
-    writePackOutput(plan, { ...hydratedPack, cacheHit: false }, options);
+    const timestamp = buildExportTimestamp();
+    const filename = `col-context-${timestamp}.md`;
+    await writeFile(resolve(cwd, filename), `${output}\n`, "utf8");
+    process.stdout.write(`exported ${filename} (savedPercent=${pack.savedPercent}%)\n`);
   });
 
 program
@@ -405,6 +409,42 @@ function writePackOutput(
   }
 
   process.stdout.write(`${formatPack(pack)}\n`);
+}
+
+async function resolvePackPipeline(
+  task: string,
+  domain: string | undefined
+): Promise<{ plan: PlanResult; pack: PackResult }> {
+  const config = await loadConfig(cwd);
+  const rules = await loadAgentsRules(cwd);
+  const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
+  const forcedDomains = resolveDomainOption(domain, config);
+  const plan = planTask(task, index, config, rules, { forcedDomains });
+  const cacheKey = buildPackCacheKey(task, forcedDomains);
+  const cached = await readPackCache(cwd, cacheKey, config);
+
+  if (cached) {
+    const estimatedTokens = cached.estimatedTokens ?? estimateTokens(cached);
+    return {
+      plan,
+      pack: { ...cached, estimatedTokens, cacheHit: true }
+    };
+  }
+
+  const pack = await packContext(cwd, plan, config);
+  const hydratedPack = {
+    ...pack,
+    estimatedTokens: estimateTokens(pack)
+  };
+  await writePackCache(cwd, cacheKey, hydratedPack);
+  return {
+    plan,
+    pack: { ...hydratedPack, cacheHit: false }
+  };
+}
+
+function buildExportTimestamp(): string {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
 async function readStdin(): Promise<string> {
