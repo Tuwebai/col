@@ -1,7 +1,7 @@
 {
   "name": "@tuwebai/col",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "bin": {
     "col": "./dist/cli/index.js"
