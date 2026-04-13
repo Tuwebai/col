@@ -1,0 +1,60 @@
+{
+  "name": "col-vscode",
+  "displayName": "COL",
+  "description": "Context Optimization Layer para VS Code",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:col.openPanel",
+    "onView:col.sidebar"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "col.openPanel",
+        "title": "COL: Open Panel"
+      },
+      {
+        "command": "col.refreshStatus",
+        "title": "COL: Refresh Status"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "col",
+          "title": "COL",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "col": [
+        {
+          "type": "webview",
+          "id": "col.sidebar",
+          "name": "COL"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.2",
+    "@types/node": "^24.6.0",
+    "@types/vscode": "^1.99.0",
+    "typescript": "^5.9.3"
+  }
+}

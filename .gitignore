@@ -1,0 +1,9 @@
+node_modules/
+dist/
+extension/node_modules/
+extension/dist/
+extension/*.vsix
+.col-index.json
+.col-pack-cache.json
+.DS_Store
+Thumbs.db
