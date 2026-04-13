@@ -40,6 +40,7 @@ const defaultConfig = {
   maxLinesPerFile: 120,
   maxTotalLines: 240,
   matchWindow: 20,
+  packCacheTtlMs: 3600000,
   domainMappings: [
     {
       name: "auth",
@@ -176,7 +177,7 @@ program
     const forcedDomains = resolveDomainOption(options.domain, config);
     const plan = planTask(task, index, config, rules, { forcedDomains });
     const cacheKey = buildPackCacheKey(task, forcedDomains);
-    const cached = await readPackCache(cwd, cacheKey);
+    const cached = await readPackCache(cwd, cacheKey, config);
 
     if (cached) {
       const estimatedTokens = cached.estimatedTokens ?? estimateTokens(cached);

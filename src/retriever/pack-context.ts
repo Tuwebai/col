@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { governToolOutput } from "../governor/govern-tool-output.js";
 import type { ColConfig, PackResult, PlanResult } from "../types/index.js";
 
 export async function packContext(
@@ -30,7 +31,8 @@ export async function packContext(
       fragmentBudget,
       plan.budget.matchWindow
     );
-    const normalizedExcerpt = normalizeExcerpt(excerptLines);
+    const governedExcerptLines = maybeGovernFragment(excerptLines, plan.budget.matchWindow, config);
+    const normalizedExcerpt = normalizeExcerpt(governedExcerptLines);
 
     if (normalizedExcerpt.length === 0 || seenExcerpts.has(normalizedExcerpt)) {
       continue;
@@ -40,8 +42,8 @@ export async function packContext(
 
     fragments.push({
       path: candidate.path,
-      excerpt: excerptLines.join("\n"),
-      lines: excerptLines.length,
+      excerpt: governedExcerptLines.join("\n"),
+      lines: governedExcerptLines.length,
       budget: fragmentBudget,
       score: candidate.score,
       mtimeMs: fileStat.mtimeMs,
@@ -62,6 +64,20 @@ export async function packContext(
     savedPercent,
     fragments
   };
+}
+
+function maybeGovernFragment(lines: string[], matchWindow: number, config: ColConfig): string[] {
+  if (lines.length <= matchWindow) {
+    return lines;
+  }
+
+  const governed = governToolOutput("log", lines.join("\n"), config);
+
+  if (governed.content.length === 0) {
+    return lines.slice(0, matchWindow);
+  }
+
+  return governed.content.split(/\r?\n/).slice(0, Math.min(lines.length, config.toolLimits.logLines));
 }
 
 function buildFragmentBudgets(

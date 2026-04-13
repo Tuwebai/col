@@ -2,7 +2,7 @@ import { access, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { resolve } from "node:path";
 
-import type { CacheStats, FileIndexEntry, PackResult } from "../types/index.js";
+import type { CacheStats, ColConfig, FileIndexEntry, PackResult } from "../types/index.js";
 
 const INDEX_CACHE_FILE = ".col-index.json";
 const PACK_CACHE_FILE = ".col-pack-cache.json";
@@ -13,6 +13,7 @@ interface IndexCachePayload {
 
 interface PackCacheEntry {
   task: string;
+  createdAt: number;
   result: PackResult;
 }
 
@@ -43,7 +44,7 @@ export async function writeIndexCache(cwd: string, files: FileIndexEntry[]): Pro
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
-export async function readPackCache(cwd: string, task: string): Promise<PackResult | null> {
+export async function readPackCache(cwd: string, task: string, config: ColConfig): Promise<PackResult | null> {
   const filePath = resolve(cwd, PACK_CACHE_FILE);
 
   try {
@@ -60,7 +61,7 @@ export async function readPackCache(cwd: string, task: string): Promise<PackResu
     return null;
   }
 
-  const isValid = await isPackResultValid(cwd, match.result);
+  const isValid = await isPackResultValid(cwd, match.result, match.createdAt, config.packCacheTtlMs);
 
   return isValid ? match.result : null;
 }
@@ -70,7 +71,7 @@ export async function writePackCache(cwd: string, task: string, result: PackResu
   const existing = await readPackCacheFile(cwd);
   const nextEntries = existing.entries.filter((entry) => entry.task !== task);
 
-  nextEntries.push({ task, result });
+  nextEntries.push({ task, createdAt: Date.now(), result });
 
   const payload: PackCachePayload = {
     entries: nextEntries.slice(-20)
@@ -149,7 +150,16 @@ async function isIndexCacheValid(cwd: string, files: FileIndexEntry[]): Promise<
   return true;
 }
 
-async function isPackResultValid(cwd: string, result: PackResult): Promise<boolean> {
+async function isPackResultValid(
+  cwd: string,
+  result: PackResult,
+  createdAt: number,
+  ttlMs: number
+): Promise<boolean> {
+  if (Date.now() - createdAt > ttlMs) {
+    return false;
+  }
+
   for (const fragment of result.fragments) {
     const current = await readFileFingerprint(cwd, fragment.path);
 

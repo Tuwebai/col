@@ -10,6 +10,7 @@
   "maxLinesPerFile": 120,
   "maxTotalLines": 240,
   "matchWindow": 20,
+  "packCacheTtlMs": 3600000,
   "domainMappings": [
     {
       "name": "auth",

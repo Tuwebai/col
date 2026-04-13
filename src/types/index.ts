@@ -26,6 +26,7 @@ export interface ColConfig {
   maxLinesPerFile: number;
   maxTotalLines: number;
   matchWindow: number;
+  packCacheTtlMs: number;
   domainMappings: DomainMapping[];
   domainRules: DomainRule[];
   toolLimits: ToolLimits;
