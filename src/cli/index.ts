@@ -17,7 +17,7 @@ import { loadAgentsRules } from "../config/load-agents-rules.js";
 import { loadConfig } from "../config/load-config.js";
 import { formatGovern } from "../governor/format-govern.js";
 import { governToolOutput } from "../governor/govern-tool-output.js";
-import { formatPack, formatPlan } from "../governor/format-output.js";
+import { formatPack, formatPackCodex, formatPlan } from "../governor/format-output.js";
 import { formatStats } from "../governor/format-stats.js";
 import { buildIndex } from "../indexer/build-index.js";
 import { planTask } from "../planner/plan-task.js";
@@ -80,6 +80,7 @@ Ejemplos:
   col plan "agregar refresh token en auth"
   col plan --json "agregar refresh token en auth"
   col pack --json "agregar refresh token en auth"
+  col pack --codex "agregar refresh token en auth"
   col stats
   col doctor
   col status
@@ -131,21 +132,22 @@ program
   .description("Empaqueta contexto util")
   .argument("<task>", "Tarea a resolver")
   .option("--json", "Salida en JSON")
-  .action(async (task: string, options: { json?: boolean }) => {
-    const cached = await readPackCache(cwd, task);
-
-    if (cached) {
-      writeOutput(formatPack({ ...cached, cacheHit: true }), { ...cached, cacheHit: true }, options);
-      return;
-    }
-
+  .option("--codex", "Salida lista para Codex")
+  .action(async (task: string, options: { json?: boolean; codex?: boolean }) => {
     const config = await loadConfig(cwd);
     const rules = await loadAgentsRules(cwd);
     const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
     const plan = planTask(task, index, config, rules);
+    const cached = await readPackCache(cwd, task);
+
+    if (cached) {
+      writePackOutput(plan, { ...cached, cacheHit: true }, options);
+      return;
+    }
+
     const pack = await packContext(cwd, plan, config);
     await writePackCache(cwd, task, pack);
-    writeOutput(formatPack({ ...pack, cacheHit: false }), { ...pack, cacheHit: false }, options);
+    writePackOutput(plan, { ...pack, cacheHit: false }, options);
   });
 
 program
@@ -338,6 +340,24 @@ function writeOutput(text: string, data: unknown, options: { json?: boolean }): 
   }
 
   process.stdout.write(`${text}\n`);
+}
+
+function writePackOutput(
+  plan: import("../types/index.js").PlanResult,
+  pack: import("../types/index.js").PackResult,
+  options: { json?: boolean; codex?: boolean }
+): void {
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify(pack, null, 2)}\n`);
+    return;
+  }
+
+  if (options.codex) {
+    process.stdout.write(`${formatPackCodex(plan, pack)}\n`);
+    return;
+  }
+
+  process.stdout.write(`${formatPack(pack)}\n`);
 }
 
 async function readStdin(): Promise<string> {
