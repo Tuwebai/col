@@ -16,6 +16,7 @@ import {
 } from "../cache/store.js";
 import { loadAgentsRules } from "../config/load-agents-rules.js";
 import { loadConfig } from "../config/load-config.js";
+import { estimateTokens } from "../governor/estimate-tokens.js";
 import { formatGovern } from "../governor/format-govern.js";
 import { governToolOutput } from "../governor/govern-tool-output.js";
 import { formatPack, formatPackCodex, formatPlan } from "../governor/format-output.js";
@@ -152,7 +153,13 @@ program
     const index = (await readIndexCache(cwd)) ?? (await buildIndex(cwd, config));
     const forcedDomains = resolveDomainOption(options.domain, config);
     const plan = planTask(task, index, config, rules, { forcedDomains });
-    writeOutput(formatPlan(plan), plan, options);
+    const dryRunPack = await packContext(cwd, plan, config);
+    const estimatedTokens = estimateTokens(dryRunPack);
+    const hydratedPlan = {
+      ...plan,
+      estimatedTokens
+    };
+    writeOutput(formatPlan(hydratedPlan), hydratedPlan, options);
   });
 
 program
@@ -172,13 +179,18 @@ program
     const cached = await readPackCache(cwd, cacheKey);
 
     if (cached) {
-      writePackOutput(plan, { ...cached, cacheHit: true }, options);
+      const estimatedTokens = cached.estimatedTokens ?? estimateTokens(cached);
+      writePackOutput(plan, { ...cached, estimatedTokens, cacheHit: true }, options);
       return;
     }
 
     const pack = await packContext(cwd, plan, config);
-    await writePackCache(cwd, cacheKey, pack);
-    writePackOutput(plan, { ...pack, cacheHit: false }, options);
+    const hydratedPack = {
+      ...pack,
+      estimatedTokens: estimateTokens(pack)
+    };
+    await writePackCache(cwd, cacheKey, hydratedPack);
+    writePackOutput(plan, { ...hydratedPack, cacheHit: false }, options);
   });
 
 program

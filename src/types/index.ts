@@ -51,6 +51,7 @@ export interface PlanResult {
   keywords: string[];
   requestedDomains: string[];
   detectedDomains: string[];
+  estimatedTokens?: number;
   candidates: FileIndexEntry[];
   rules: AgentRuleSet;
   budget: {
@@ -78,6 +79,7 @@ export interface PackResult {
   sourceLines: number;
   savedLines: number;
   savedPercent: number;
+  estimatedTokens?: number;
   cacheHit?: boolean;
   fragments: PackedFragment[];
 }

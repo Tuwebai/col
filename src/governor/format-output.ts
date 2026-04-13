@@ -1,3 +1,5 @@
+import { estimateCostUsd, isHighTokenEstimate } from "./estimate-tokens.js";
+
 import type { PackResult, PlanResult } from "../types/index.js";
 
 export function formatPlan(plan: PlanResult): string {
@@ -14,9 +16,15 @@ export function formatPlan(plan: PlanResult): string {
     `rules.source=${plan.rules.source ?? "-"}`,
     `rules.critical=${plan.rules.critical.length}`,
     `rules.standard=${plan.rules.standard.length}`,
+    `estimatedTokens=${plan.estimatedTokens ?? 0}`,
+    `estimatedCost=~$${estimateCostUsd(plan.estimatedTokens ?? 0).toFixed(6)} USD`,
     "",
     "[rules]"
   ];
+
+  if (plan.estimatedTokens && isHighTokenEstimate(plan.estimatedTokens)) {
+    lines.push(`[warn] contexto estimado alto: ${plan.estimatedTokens} tokens - considera --domain o reducir maxFiles`);
+  }
 
   if (plan.rules.rules.length === 0) {
     lines.push("-");
@@ -49,6 +57,7 @@ export function formatPack(pack: PackResult): string {
     `totalLines=${pack.totalLines}`,
     `savedLines=${pack.savedLines}`,
     `savedPercent=${pack.savedPercent}`,
+    `estimatedTokens=${pack.estimatedTokens ?? 0}`,
     `cacheHit=${pack.cacheHit ? "true" : "false"}`
   ];
 
@@ -109,6 +118,7 @@ export function formatPackCodex(plan: PlanResult, pack: PackResult): string {
   lines.push(`- totalLines: ${pack.totalLines}`);
   lines.push(`- savedLines: ${pack.savedLines}`);
   lines.push(`- savedPercent: ${pack.savedPercent}`);
+  lines.push(`- estimatedTokens: ${pack.estimatedTokens ?? 0}`);
   lines.push(`- cacheHit: ${pack.cacheHit ? "true" : "false"}`);
 
   for (const fragment of pack.fragments) {
