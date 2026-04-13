@@ -88,6 +88,17 @@ With COL:     agent reads 1 package file   =    ~600 tokens
 
 ## 📦 Installation
 
+```bash
+npx @tuwebai/col init
+```
+
+o
+
+```bash
+npm install -g @tuwebai/col
+col init
+```
+
 ### From source
 
 ```bash
@@ -112,6 +123,10 @@ After `npm link`, the `col` command is available globally in any project.
 ```bash
 # 1. Initialize COL in your project
 cd my-project
+npx @tuwebai/col init
+
+# o, si ya lo instalaste globalmente:
+npm install -g @tuwebai/col
 col init
 
 # 2. Edit col.config.json with your domain mappings (see Configuration)
