@@ -9,20 +9,40 @@ export async function packContext(
   config: ColConfig
 ): Promise<PackResult> {
   const fragments = [];
+  const fragmentBudgets = buildFragmentBudgets(
+    plan.candidates.length,
+    plan.budget.maxLinesPerFile,
+    plan.budget.maxTotalLines
+  );
+  const seenExcerpts = new Set<string>();
   let sourceLines = 0;
 
-  for (const candidate of plan.candidates) {
+  for (const [index, candidate] of plan.candidates.entries()) {
     const absolutePath = resolve(cwd, candidate.path);
     const raw = await readFile(absolutePath, "utf8");
     const fileStat = await stat(absolutePath);
     const lines = raw.split(/\r?\n/);
+    const fragmentBudget = fragmentBudgets[index] ?? plan.budget.maxLinesPerFile;
     sourceLines += lines.length;
-    const excerptLines = selectExcerpt(lines, plan.keywords, config.maxLinesPerFile, plan.budget.matchWindow);
+    const excerptLines = selectExcerpt(
+      lines,
+      plan.keywords,
+      fragmentBudget,
+      plan.budget.matchWindow
+    );
+    const normalizedExcerpt = normalizeExcerpt(excerptLines);
+
+    if (normalizedExcerpt.length === 0 || seenExcerpts.has(normalizedExcerpt)) {
+      continue;
+    }
+
+    seenExcerpts.add(normalizedExcerpt);
 
     fragments.push({
       path: candidate.path,
       excerpt: excerptLines.join("\n"),
       lines: excerptLines.length,
+      budget: fragmentBudget,
       score: candidate.score,
       mtimeMs: fileStat.mtimeMs,
       size: fileStat.size
@@ -42,6 +62,36 @@ export async function packContext(
     savedPercent,
     fragments
   };
+}
+
+function buildFragmentBudgets(
+  totalCandidates: number,
+  maxLinesPerFile: number,
+  maxTotalLines: number
+): number[] {
+  if (totalCandidates === 0) {
+    return [];
+  }
+
+  const baseBudget = Math.max(20, Math.min(maxLinesPerFile, Math.floor(maxTotalLines / totalCandidates)));
+  const budgets = Array.from({ length: totalCandidates }, () => baseBudget);
+  let remaining = Math.max(maxTotalLines - baseBudget * totalCandidates, 0);
+  let cursor = 0;
+
+  while (remaining > 0 && totalCandidates > 0) {
+    if (budgets[cursor] < maxLinesPerFile) {
+      budgets[cursor] += 1;
+      remaining -= 1;
+    }
+
+    cursor = (cursor + 1) % totalCandidates;
+
+    if (budgets.every((budget) => budget >= maxLinesPerFile)) {
+      break;
+    }
+  }
+
+  return budgets;
 }
 
 function selectExcerpt(
@@ -102,4 +152,11 @@ function collectExcerptIndexes(
   }
 
   return [...selected].sort((left, right) => left - right);
+}
+
+function normalizeExcerpt(lines: string[]): string {
+  return lines
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
 }

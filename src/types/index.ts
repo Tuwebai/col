@@ -16,6 +16,7 @@ export interface ColConfig {
   ignore: string[];
   maxFiles: number;
   maxLinesPerFile: number;
+  maxTotalLines: number;
   matchWindow: number;
   domainRules: DomainRule[];
   toolLimits: ToolLimits;
@@ -42,6 +43,7 @@ export interface PlanResult {
   budget: {
     maxFiles: number;
     maxLinesPerFile: number;
+    maxTotalLines: number;
     matchWindow: number;
   };
 }
@@ -50,6 +52,7 @@ export interface PackedFragment {
   path: string;
   excerpt: string;
   lines: number;
+  budget: number;
   score: number;
   mtimeMs?: number;
   size?: number;

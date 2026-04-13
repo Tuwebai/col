@@ -29,13 +29,14 @@ const configPath = resolve(cwd, "col.config.json");
 const defaultConfig = {
   entrypoints: [],
   ignore: [
-    "node_modules/**",
-    "dist/**",
-    ".git/**",
-    "coverage/**"
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.git/**",
+    "**/coverage/**"
   ],
   maxFiles: 5,
   maxLinesPerFile: 120,
+  maxTotalLines: 240,
   matchWindow: 20,
   domainRules: [
     {

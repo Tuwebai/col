@@ -7,6 +7,7 @@ export function formatPlan(plan: PlanResult): string {
     `keywords=${plan.keywords.join(", ") || "-"}`,
     `budget.maxFiles=${plan.budget.maxFiles}`,
     `budget.maxLinesPerFile=${plan.budget.maxLinesPerFile}`,
+    `budget.maxTotalLines=${plan.budget.maxTotalLines}`,
     `budget.matchWindow=${plan.budget.matchWindow}`,
     `rules.source=${plan.rules.source ?? "-"}`,
     "",
@@ -49,7 +50,7 @@ export function formatPack(pack: PackResult): string {
 
   for (const fragment of pack.fragments) {
     lines.push("");
-    lines.push(`[fragment] ${fragment.path} score=${fragment.score}`);
+    lines.push(`[fragment] ${fragment.path} score=${fragment.score} budget=${fragment.budget}`);
     lines.push(fragment.excerpt);
   }
 

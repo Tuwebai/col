@@ -114,6 +114,7 @@ function deriveBudget(
   return {
     maxFiles: strictExploration ? Math.min(config.maxFiles, 3) : config.maxFiles,
     maxLinesPerFile: config.maxLinesPerFile,
+    maxTotalLines: config.maxTotalLines,
     matchWindow: config.matchWindow
   };
 }
