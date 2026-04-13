@@ -11,6 +11,14 @@ export interface DomainRule {
   boost: number;
 }
 
+export interface DomainMapping {
+  name: string;
+  aliases: string[];
+  paths: string[];
+  tags: string[];
+  boost: number;
+}
+
 export interface ColConfig {
   entrypoints: string[];
   ignore: string[];
@@ -18,6 +26,7 @@ export interface ColConfig {
   maxLinesPerFile: number;
   maxTotalLines: number;
   matchWindow: number;
+  domainMappings: DomainMapping[];
   domainRules: DomainRule[];
   toolLimits: ToolLimits;
 }
@@ -38,6 +47,7 @@ export interface FileIndexEntry {
 export interface PlanResult {
   task: string;
   keywords: string[];
+  detectedDomains: string[];
   candidates: FileIndexEntry[];
   rules: AgentRuleSet;
   budget: {

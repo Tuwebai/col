@@ -5,6 +5,7 @@ export function formatPlan(plan: PlanResult): string {
     "[plan]",
     `task=${plan.task}`,
     `keywords=${plan.keywords.join(", ") || "-"}`,
+    `domains=${plan.detectedDomains.join(", ") || "-"}`,
     `budget.maxFiles=${plan.budget.maxFiles}`,
     `budget.maxLinesPerFile=${plan.budget.maxLinesPerFile}`,
     `budget.maxTotalLines=${plan.budget.maxTotalLines}`,
@@ -63,6 +64,9 @@ export function formatPackCodex(plan: PlanResult, pack: PackResult): string {
     "",
     "## Task",
     plan.task,
+    "",
+    "## Domains",
+    ...(plan.detectedDomains.length === 0 ? ["-"] : plan.detectedDomains.map((domain) => `- ${domain}`)),
     "",
     "## Rules"
   ];

@@ -38,6 +38,29 @@ const defaultConfig = {
   maxLinesPerFile: 120,
   maxTotalLines: 240,
   matchWindow: 20,
+  domainMappings: [
+    {
+      name: "auth",
+      aliases: ["auth", "authentication", "login", "session"],
+      paths: ["src/features/auth/", "src/core/auth/", "src/auth/"],
+      tags: ["auth", "login", "session"],
+      boost: 20
+    },
+    {
+      name: "api",
+      aliases: ["api", "http", "endpoint", "client"],
+      paths: ["src/features/api/", "src/core/api/", "src/api/"],
+      tags: ["api", "http", "client"],
+      boost: 18
+    },
+    {
+      name: "cli",
+      aliases: ["cli", "command", "terminal"],
+      paths: ["src/cli/", "extension/src/cli/"],
+      tags: ["cli", "command"],
+      boost: 20
+    }
+  ],
   domainRules: [
     {
       name: "docs",
@@ -182,6 +205,7 @@ program
         maxFiles: number;
         maxLinesPerFile: number;
         matchWindow: number;
+        domainMappings: number;
         domainRules: number;
       }
     };
@@ -204,6 +228,7 @@ program
         maxFiles: config.maxFiles,
         maxLinesPerFile: config.maxLinesPerFile,
         matchWindow: config.matchWindow,
+        domainMappings: config.domainMappings.length,
         domainRules: config.domainRules.length
       };
       lines.push("");
@@ -211,6 +236,7 @@ program
       lines.push(`maxFiles=${config.maxFiles}`);
       lines.push(`maxLinesPerFile=${config.maxLinesPerFile}`);
       lines.push(`matchWindow=${config.matchWindow}`);
+      lines.push(`domainMappings=${config.domainMappings.length}`);
       lines.push(`domainRules=${config.domainRules.length}`);
     }
 

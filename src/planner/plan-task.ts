@@ -1,6 +1,7 @@
 import type {
   AgentRuleSet,
   ColConfig,
+  DomainMapping,
   DomainRule,
   FileIndexEntry,
   PlanResult
@@ -38,12 +39,21 @@ export function planTask(
   rules: AgentRuleSet
 ): PlanResult {
   const keywords = extractKeywords(task);
+  const detectedDomains = detectDomains(keywords, config.domainMappings);
   const budget = deriveBudget(config, rules);
-  const candidates = scoreCandidatesWithConfig(index, task, keywords, config.domainRules).slice(0, budget.maxFiles);
+  const candidates = scoreCandidatesWithConfig(
+    index,
+    task,
+    keywords,
+    detectedDomains,
+    config.domainMappings,
+    config.domainRules
+  ).slice(0, budget.maxFiles);
 
   return {
     task,
     keywords,
+    detectedDomains: detectedDomains.map((domain) => domain.name),
     rules,
     candidates,
     budget
@@ -82,6 +92,8 @@ export function scoreCandidatesWithConfig(
   entries: FileIndexEntry[],
   task: string,
   keywords: string[],
+  detectedDomains: DomainMapping[],
+  domainMappings: DomainMapping[],
   domainRules: DomainRule[]
 ): FileIndexEntry[] {
   const taskText = task.toLowerCase();
@@ -94,12 +106,19 @@ export function scoreCandidatesWithConfig(
         scoreKeywordMatches(entry, keywords) +
         scorePathMatches(entry, keywords) +
         scoreIntent(entry, taskText) +
+        scoreDomainMappings(entry, detectedDomains, domainMappings) +
         domainRules.reduce((total, rule) => {
           return total + scoreDomainRule(entry, keywords, rule);
         }, 0)
     }))
     .filter((entry) => entry.score > 0)
     .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+}
+
+function detectDomains(keywords: string[], domainMappings: DomainMapping[]): DomainMapping[] {
+  return domainMappings.filter((mapping) => {
+    return keywords.some((keyword) => mapping.aliases.includes(keyword) || keyword === mapping.name);
+  });
 }
 
 function deriveBudget(
@@ -184,4 +203,27 @@ function scoreDomainRule(
   const matchedPath = rule.matchPaths.some((path) => entry.path.includes(path));
 
   return matchedTag || matchedPath ? rule.boost : 0;
+}
+
+function scoreDomainMappings(
+  entry: FileIndexEntry,
+  detectedDomains: DomainMapping[],
+  domainMappings: DomainMapping[]
+): number {
+  if (detectedDomains.length === 0 || domainMappings.length === 0) {
+    return 0;
+  }
+
+  const matchedBoost = detectedDomains.reduce((total, mapping) => {
+    const matchedPath = mapping.paths.some((path) => entry.path.includes(path));
+    const matchedTag = mapping.tags.some((tag) => entry.tags.includes(tag));
+
+    return total + (matchedPath || matchedTag ? mapping.boost : 0);
+  }, 0);
+
+  if (matchedBoost > 0) {
+    return matchedBoost;
+  }
+
+  return -5;
 }
